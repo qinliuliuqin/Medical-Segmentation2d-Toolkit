@@ -26,11 +26,10 @@ def read_image_list(image_list_file, mode):
 class SegmentationDataset(Dataset):
     """ training data set for volumetric segmentation """
 
-    def __init__(self, mode, imlist_file, num_classes, spacing, crop_size, sampling_method,
+    def __init__(self, mode, imlist_file, labels, spacing, crop_size, sampling_method,
                  random_translation, random_scale, interpolation, crop_normalizers):
         """ constructor
         :param imlist_file: image-segmentation list file
-        :param num_classes: the number of classes
         :param spacing: the resolution, e.g., [1, 1, 1]
         :param crop_size: crop size, e.g., [96, 96, 96]
         :param sampling_method: 'GLOBAL', 'MASK'
@@ -43,7 +42,9 @@ class SegmentationDataset(Dataset):
         else:
             raise ValueError('imseg_list must be a csv file')
 
-        self.num_classes = num_classes
+        self.labels = labels
+
+        self.num_classes = self.labels.keys() + 1
 
         self.spacing = np.array(spacing, dtype=np.double)
         assert self.spacing.size == 2, 'only 2-element of spacing is supported'
@@ -126,7 +127,21 @@ class SegmentationDataset(Dataset):
                 image = sitk.ReadImage(image_path, sitk.sitkFloat32)
             images.append(image)
 
-        seg = sitk.ReadImage(seg_path, sitk.sitkFloat32)
+        if seg_path.endswith('PNG'):
+            seg = read_picture(seg_path, np.float32)
+        else:
+            seg = sitk.ReadImage(seg_path, sitk.sitkFloat32)
+
+        # select labels from the seg
+        seg_npy = sitk.GetArrayFromImage(seg)
+        reordered_seg_npy = np.zeros_like(seg_npy)
+        for idx, key in list(self.labels.keys()):
+            label = self.labels[idx]
+            reordered_seg_npy[abs(seg_npy - label) < 1e-1] = idx + 1
+
+        reordered_seg = sitk.GetImageFromArray(reordered_seg_npy)
+        reordered_seg.CopyInformation(seg)
+        seg = reordered_seg
 
         # sampling a crop center
         if self.sampling_method == 'CENTER':

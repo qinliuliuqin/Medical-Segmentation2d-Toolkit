@@ -40,6 +40,10 @@ __C.dataset = {}
 # the number of classes
 __C.dataset.num_classes = 2
 
+__C.dataset.labels = {
+    'foreground': 255
+}
+
 # the resolution on which segmentation is performed
 __C.dataset.spacing = [0.4, 0.4]
 
