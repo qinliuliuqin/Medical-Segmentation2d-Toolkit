@@ -45,10 +45,10 @@ __C.dataset.labels = {
 }
 
 # the resolution on which segmentation is performed
-__C.dataset.spacing = [0.4, 0.4]
+__C.dataset.spacing = [1.0, 1.0]
 
 # the sampling crop size, e.g., determine the context information
-__C.dataset.crop_size = [128, 128]
+__C.dataset.crop_size = [256, 256]
 
 # sampling method:
 # 1) GLOBAL: sampling crops randomly in the entire image domain
@@ -58,7 +58,7 @@ __C.dataset.crop_size = [128, 128]
 __C.dataset.sampling_method = 'HYBRID'
 
 # translation augmentation (unit: mm)
-__C.dataset.random_translation = [64, 64]
+__C.dataset.random_translation = [5, 5]
 
 # spacing scale augmentation, spacing scale will be randomly selected from [min, max]
 # during training, the image spacing will be spacing * scale
@@ -135,4 +135,4 @@ __C.train.save_epochs = 100
 __C.debug = {}
 
 # whether to save input crops
-__C.debug.save_inputs = False
+__C.debug.save_inputs = True
