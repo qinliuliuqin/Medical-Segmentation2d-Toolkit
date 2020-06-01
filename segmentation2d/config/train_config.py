@@ -101,7 +101,7 @@ __C.loss.focal_gamma = 2
 __C.net = {}
 
 # the network name
-__C.net.name = 'vbnet'
+__C.net.name = 'vdnet2d'
 
 ##################################
 # training parameters
