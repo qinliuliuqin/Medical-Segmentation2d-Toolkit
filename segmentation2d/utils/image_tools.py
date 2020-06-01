@@ -50,9 +50,9 @@ def set_image_frame(image, frame):
     """
     assert isinstance(image, sitk.Image)
 
-    spacing = frame[:3].astype(np.double)
-    origin = frame[3:6].astype(np.double)
-    direction = frame[6:15].astype(np.double)
+    spacing = frame[:2].astype(np.double)
+    origin = frame[2:4].astype(np.double)
+    direction = frame[4:8].astype(np.double)
 
     image.SetSpacing(spacing)
     image.SetOrigin(origin)
