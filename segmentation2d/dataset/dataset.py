@@ -1,39 +1,32 @@
 import numpy as np
 import os
+import pandas as pd
 import SimpleITK as sitk
 from torch.utils.data import Dataset
 
-from segmentation2d.utils.file_io import readlines
 from segmentation2d.utils.image_tools import select_random_voxels_in_multi_class_mask, crop_image, \
-    convert_image_to_tensor, get_image_frame
+    convert_image_to_tensor, get_image_frame, read_picture
 
 
-def read_train_txt(imlist_file):
-    """ read single-modality txt file
-    :param imlist_file: image list file path
-    :return: a list of image path list, list of segmentation paths
-    """
-    lines = readlines(imlist_file)
-    num_cases = int(lines[0])
+def read_image_list(image_list_file, mode):
+  """
+  Reads the training image list file and returns a list of image file names.
+  """
+  images_df = pd.read_csv(image_list_file)
+  image_name_list = images_df['image_name'].tolist()
+  image_path_list = images_df['image_path'].tolist()
+  mask_path_list = None
 
-    if len(lines)-1 < num_cases * 2:
-        raise ValueError('too few lines in imlist file')
+  if mode == 'train':
+    mask_path_list = images_df['mask_path'].tolist()
 
-    im_list, seg_list = [], []
-    for i in range(num_cases):
-        im_path, seg_path = lines[1 + i * 2], lines[2 + i * 2]
-        assert os.path.isfile(im_path), 'image not exist: {}'.format(im_path)
-        assert os.path.isfile(seg_path), 'mask not exist: {}'.format(seg_path)
-        im_list.append([im_path])
-        seg_list.append(seg_path)
-
-    return im_list, seg_list
+  return image_name_list, image_path_list, mask_path_list
 
 
 class SegmentationDataset(Dataset):
     """ training data set for volumetric segmentation """
 
-    def __init__(self, imlist_file, num_classes, spacing, crop_size, sampling_method,
+    def __init__(self, mode, imlist_file, num_classes, spacing, crop_size, sampling_method,
                  random_translation, random_scale, interpolation, crop_normalizers):
         """ constructor
         :param imlist_file: image-segmentation list file
@@ -45,10 +38,10 @@ class SegmentationDataset(Dataset):
         :param interpolation: 'LINEAR' for linear interpolation, 'NN' for nearest neighbor
         :param crop_normalizers: used to normalize the image crops, one for one image modality
         """
-        if imlist_file.endswith('txt'):
-            self.im_list, self.seg_list = read_train_txt(imlist_file)
+        if imlist_file.endswith('csv'):
+            self.im_name_list, self.im_path_list, self.seg_list = read_image_list(imlist_file, mode)
         else:
-            raise ValueError('imseg_list must be a txt file')
+            raise ValueError('imseg_list must be a csv file')
 
         self.num_classes = num_classes
 
@@ -76,11 +69,11 @@ class SegmentationDataset(Dataset):
 
     def __len__(self):
         """ get the number of images in this data set """
-        return len(self.im_list)
+        return len(self.im_path_list)
 
     def num_modality(self):
         """ get the number of input image modalities """
-        return len(self.im_list[0])
+        return len(self.im_path_list[0])
 
     def global_sample(self, image):
         """ random sample a position in the image
@@ -119,7 +112,7 @@ class SegmentationDataset(Dataset):
         :param index:  the sample index
         :return cropped image, cropped mask, crop frame, case name
         """
-        image_paths, seg_path = self.im_list[index], self.seg_list[index]
+        image_paths, seg_path = self.im_path_list[index], self.seg_list[index]
 
         case_name = os.path.basename(os.path.dirname(image_paths[0]))
         case_name += '_' + os.path.basename(image_paths[0])
@@ -127,7 +120,10 @@ class SegmentationDataset(Dataset):
         # image IO
         images = []
         for image_path in image_paths:
-            image = sitk.ReadImage(image_path, sitk.sitkFloat32)
+            if image_path.endswith('PNG'):
+                image = read_picture(image_path, np.float32)
+            else:
+                image = sitk.ReadImage(image_path, sitk.sitkFloat32)
             images.append(image)
 
         seg = sitk.ReadImage(seg_path, sitk.sitkFloat32)

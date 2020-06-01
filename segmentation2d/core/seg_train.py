@@ -44,7 +44,7 @@ def train(train_config_file):
 
     # enable logging
     log_file = os.path.join(model_folder, 'train_log.txt')
-    logger = setup_logger(log_file, 'seg3d')
+    logger = setup_logger(log_file, 'seg2d')
 
     # control randomness during training
     np.random.seed(train_cfg.general.seed)
@@ -68,7 +68,7 @@ def train(train_config_file):
     data_loader = DataLoader(dataset, sampler=sampler, batch_size=train_cfg.train.batchsize,
                              num_workers=train_cfg.train.num_threads, pin_memory=True)
 
-    net_module = importlib.import_module('segmentation3d.network.' + train_cfg.net.name)
+    net_module = importlib.import_module('segmentation2d.network.' + train_cfg.net.name)
     net = net_module.SegmentationNet(dataset.num_modality(), train_cfg.dataset.num_classes)
     max_stride = net.max_stride()
     net_module.parameters_kaiming_init(net)
