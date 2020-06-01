@@ -1,5 +1,4 @@
 import numpy as np
-import os
 import pandas as pd
 import SimpleITK as sitk
 from torch.utils.data import Dataset
@@ -74,7 +73,7 @@ class SegmentationDataset(Dataset):
 
     def num_modality(self):
         """ get the number of input image modalities """
-        return len(self.im_path_list[0])
+        return 1
 
     def global_sample(self, image):
         """ random sample a position in the image
@@ -113,19 +112,16 @@ class SegmentationDataset(Dataset):
         :param index:  the sample index
         :return cropped image, cropped mask, crop frame, case name
         """
-        image_paths, seg_path = self.im_path_list[index], self.seg_list[index]
-
-        case_name = os.path.basename(os.path.dirname(image_paths[0]))
-        case_name += '_' + os.path.basename(image_paths[0])
+        image_name, image_path, seg_path = \
+            self.im_name_list[index], self.im_path_list[index], self.seg_list[index]
 
         # image IO
         images = []
-        for image_path in image_paths:
-            if image_path.endswith('PNG'):
-                image = read_picture(image_path, np.float32)
-            else:
-                image = sitk.ReadImage(image_path, sitk.sitkFloat32)
-            images.append(image)
+        if image_path.endswith('PNG'):
+            image = read_picture(image_path, np.float32)
+        else:
+            image = sitk.ReadImage(image_path, sitk.sitkFloat32)
+        images.append(image)
 
         if seg_path.endswith('PNG'):
             seg = read_picture(seg_path, np.float32)
@@ -135,8 +131,8 @@ class SegmentationDataset(Dataset):
         # select labels from the seg
         seg_npy = sitk.GetArrayFromImage(seg)
         reordered_seg_npy = np.zeros_like(seg_npy)
-        for idx, key in list(self.labels.keys()):
-            label = self.labels[idx]
+        for idx, key in enumerate(list(self.labels.keys())):
+            label = self.labels[key]
             reordered_seg_npy[abs(seg_npy - label) < 1e-1] = idx + 1
 
         reordered_seg = sitk.GetImageFromArray(reordered_seg_npy)
@@ -192,4 +188,4 @@ class SegmentationDataset(Dataset):
         im = convert_image_to_tensor(images)
         seg = convert_image_to_tensor(seg)
 
-        return im, seg, frame, case_name
+        return im, seg, frame, image_name
