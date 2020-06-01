@@ -13,19 +13,19 @@ cfg = __C
 __C.general = {}
 
 # image-segmentation pair list
-__C.general.imseg_list = '/shenlab/lab_stor6/qinliu/CT_Dental/datasets/segmentation/train.txt'
+__C.general.imseg_list = '/shenlab/lab_stor6/projects/PIC_TNSCUI2020/datasets/train.csv'
 
 # the output of training models and logs
-__C.general.save_dir = '/shenlab/lab_stor6/qinliu/CT_Dental/models/model_0530_2020'
+__C.general.save_dir = '/shenlab/lab_stor6/qinliu/PIC_TNSCUI2020/models/model_0601_2020'
 
 # the model scale
-__C.general.model_scale = 'fine'
+__C.general.model_scale = 'coarse'
 
 # continue training from certain epoch, -1 to train from scratch
 __C.general.resume_epoch = -1
 
 # the number of GPUs used in training. Set to 0 if using cpu only.
-__C.general.num_gpus = 3
+__C.general.num_gpus = 1
 
 # random seed used in training (debugging purpose)
 __C.general.seed = 0
@@ -38,7 +38,7 @@ __C.general.seed = 0
 __C.dataset = {}
 
 # the number of classes
-__C.dataset.num_classes = 3
+__C.dataset.num_classes = 2
 
 # the resolution on which segmentation is performed
 __C.dataset.spacing = [0.4, 0.4]
