@@ -44,7 +44,7 @@ class SegmentationDataset(Dataset):
 
         self.labels = labels
 
-        self.num_classes = self.labels.keys() + 1
+        self.num_classes = len(self.labels.keys()) + 1
 
         self.spacing = np.array(spacing, dtype=np.double)
         assert self.spacing.size == 2, 'only 2-element of spacing is supported'
