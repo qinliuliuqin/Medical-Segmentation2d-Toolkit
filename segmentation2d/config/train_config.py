@@ -88,7 +88,7 @@ __C.loss.name = 'Focal'
 
 # the weight for each class including background class
 # weights will be normalized
-__C.loss.obj_weight = [1/3, 1/3, 1/3]
+__C.loss.obj_weight = [1/2, 1/2]
 
 # the gamma parameter in focal loss
 __C.loss.focal_gamma = 2
