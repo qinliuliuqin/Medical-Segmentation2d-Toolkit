@@ -1,11 +1,17 @@
 import torch
 import torch.nn as nn
 
-from segmentation2d.network.module.weight_init import kaiming_weight_init
+from segmentation2d.network.module.weight_init import kaiming_weight_init, gaussian_weight_init
 
 
-def parameters_init(net):
-  net.apply(kaiming_weight_init)
+def parameters_kaiming_init(net):
+    """ model parameters initialization """
+    net.apply(kaiming_weight_init)
+
+
+def parameters_gaussian_init(net):
+  """ model parameters initialization """
+  net.apply(gaussian_weight_init)
 
 
 class InputBlock(nn.Module):
