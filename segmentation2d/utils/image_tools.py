@@ -192,7 +192,7 @@ def image_partition_by_fixed_size(image, bbox_start_voxel, bbox_end_voxel,
     for idx in range(2):
         assert image_size[idx] >= max_stride and image_size[idx] % max_stride == 0
 
-    bbox_size = [min(image_size[idx], bbox_end_voxel[idx] - bbox_start_voxel[idx]) for idx in range(3)]
+    bbox_size = [min(image_size[idx], bbox_end_voxel[idx] - bbox_start_voxel[idx]) for idx in range(2)]
     for idx in range(2):
         if bbox_size[idx] % max_stride != 0:
             bbox_size[idx] = max_stride * (bbox_size[idx] // max_stride + 1)
@@ -203,13 +203,13 @@ def image_partition_by_fixed_size(image, bbox_start_voxel, bbox_end_voxel,
             bbox_start_voxel[idx] = bbox_end_voxel[idx] - bbox_size[idx]
         assert bbox_start_voxel[idx] >= 0
 
-    box_size = [int(partition_size[idx] / image_spacing[idx] + 0.5) for idx in range(3)]
+    box_size = [int(partition_size[idx] / image_spacing[idx] + 0.5) for idx in range(2)]
     for idx in range(2):
         if box_size[idx] % max_stride:
             box_size[idx] = max_stride * (box_size[idx] // max_stride + 1)
         box_size[idx] = min(bbox_size[idx], box_size[idx])
 
-    stride_size = [int(partition_stride[idx] / image_spacing[idx] + 0.5) for idx in range(3)]
+    stride_size = [int(partition_stride[idx] / image_spacing[idx] + 0.5) for idx in range(2)]
     for idx in range(2):
         stride_size[idx] = min(bbox_size[idx], stride_size[idx])
 

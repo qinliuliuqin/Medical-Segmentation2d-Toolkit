@@ -255,14 +255,14 @@ def segmentation_volume(model, cfg, image, bbox_start_voxel, bbox_end_voxel, use
 
     partition_type = cfg.partition_type
     if partition_type == 'DISABLE':
-        start_voxels = [[0, 0, 0]]
-        end_voxels = [[int(iso_image.GetSize()[idx]) for idx in range(3)]]
+        start_voxels = [[0, 0]]
+        end_voxels = [[int(iso_image.GetSize()[idx]) for idx in range(2)]]
 
     elif partition_type == 'SIZE':
         partition_stride = copy.deepcopy(cfg.partition_stride)
         partition_size = copy.deepcopy(cfg.partition_size)
         if not use_gpu:
-            for idx in range(3):
+            for idx in range(2):
                 partition_size[idx] = partition_size[idx] * cfg.cpu_partition_decrease_ratio
                 partition_stride[idx] = partition_stride[idx] * cfg.cpu_partition_decrease_ratio
 
@@ -270,18 +270,18 @@ def segmentation_volume(model, cfg, image, bbox_start_voxel, bbox_end_voxel, use
 
         # convert bounding box to the iso image frame
         if bbox_start_voxel is not None and bbox_end_voxel is not None:
-            bbox_start_voxel_double = [float(bbox_start_voxel[idx]) for idx in range(3)]
+            bbox_start_voxel_double = [float(bbox_start_voxel[idx]) for idx in range(2)]
             bbox_start_world = image.TransformContinuousIndexToPhysicalPoint(bbox_start_voxel_double)
             bbox_start_voxel = iso_image.TransformPhysicalPointToIndex(bbox_start_world)
 
-            bbox_end_voxel_double = [float(bbox_end_voxel[idx]) for idx in range(3)]
+            bbox_end_voxel_double = [float(bbox_end_voxel[idx]) for idx in range(2)]
             bbox_end_world = image.TransformContinuousIndexToPhysicalPoint(bbox_end_voxel_double)
             bbox_end_voxel = iso_image.TransformPhysicalPointToIndex(bbox_end_world)
 
-            bbox_start_voxel = [max(0, bbox_start_voxel[idx]) for idx in range(3)]
-            bbox_end_voxel = [min(bbox_end_voxel[idx], iso_image.GetSize()[idx]) for idx in range(3)]
+            bbox_start_voxel = [max(0, bbox_start_voxel[idx]) for idx in range(2)]
+            bbox_end_voxel = [min(bbox_end_voxel[idx], iso_image.GetSize()[idx]) for idx in range(2)]
         else:
-            bbox_start_voxel, bbox_end_voxel = [0, 0, 0], [iso_image.GetSize()[idx] for idx in range(3)]
+            bbox_start_voxel, bbox_end_voxel = [0, 0], [iso_image.GetSize()[idx] for idx in range(2)]
 
         start_voxels, end_voxels = image_partition_by_fixed_size(
             iso_image, bbox_start_voxel, bbox_end_voxel, partition_size, partition_stride, max_stride
