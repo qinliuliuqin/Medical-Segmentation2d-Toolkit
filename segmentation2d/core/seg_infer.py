@@ -93,7 +93,7 @@ def load_single_model(model_folder, gpu_id=0):
         os.environ['CUDA_VISIBLE_DEVICES'] = '{}'.format(int(gpu_id))
         # load network module
         state = torch.load(chk_file)
-        net_module = importlib.import_module('segmentation3d.network.' + state['net'])
+        net_module = importlib.import_module('segmentation2d.network.' + state['net'])
         net = net_module.SegmentationNet(state['in_channels'], state['out_channels'])
         net = nn.parallel.DataParallel(net, device_ids=[0])
         net.load_state_dict(state['state_dict'])
@@ -103,7 +103,7 @@ def load_single_model(model_folder, gpu_id=0):
 
     else:
         state = torch.load(chk_file, map_location='cpu')
-        net_module = importlib.import_module('segmentation3d.network.' + state['net'])
+        net_module = importlib.import_module('segmentation2d.network.' + state['net'])
         net = net_module.SegmentationNet(state['in_channels'], state['out_channels'])
 
         state_dict = state['state_dict']
