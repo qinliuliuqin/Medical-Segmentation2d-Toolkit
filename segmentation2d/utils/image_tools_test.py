@@ -1,6 +1,5 @@
 import SimpleITK as sitk
-from segmentation2d.utils.image_tools import crop_image, resample_spacing, \
-  pick_largest_connected_component, get_bounding_box
+from segmentation2d.utils.image_tools import *
 
 
 def test_copy_image():
@@ -83,6 +82,15 @@ def test_get_bounding_box():
   print(bbox)
 
 
+def test_save_pic():
+
+  seg_path = '/mnt/projects/PIC_TNSCUI2020/results/model_0601_2020/18.PNG/seg.mha'
+  seg = sitk.ReadImage(seg_path)
+
+  pic_path = '/mnt/projects/PIC_TNSCUI2020/results/model_0601_2020/18.PNG/seg.PNG'
+  write_picture(seg, pic_path)
+
+
 if __name__ == '__main__':
 
   # test_copy_image()
@@ -93,4 +101,6 @@ if __name__ == '__main__':
 
   # test_pick_largest_connected_component()
 
-  test_get_bounding_box()
+  # test_get_bounding_box()
+
+  test_save_pic()

@@ -73,6 +73,14 @@ def read_picture(picture_path, out_image_type):
     return image
 
 
+def write_picture(image, save_path):
+    """
+    Write picture from SimpleITK image
+    """
+    image_npy = sitk.GetArrayFromImage(image)
+    imageio.imwrite(save_path, image_npy)
+
+
 def save_intermediate_results(idxs, crops, masks, outputs, frames, file_names, out_folder):
     """
     Save intermediate results to training folder

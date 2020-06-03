@@ -16,7 +16,7 @@ from segmentation2d.utils.file_io import load_config, readlines
 from segmentation2d.utils.model_io import get_checkpoint_folder
 from segmentation2d.utils.image_tools import resample, convert_image_to_tensor, convert_tensor_to_image, \
     copy_image, image_partition_by_fixed_size, resample_spacing, add_image_value, pick_largest_connected_component, \
-    remove_small_connected_component, get_bounding_box
+    remove_small_connected_component, get_bounding_box,write_picture
 from segmentation2d.utils.normalizer import FixedNormalizer, AdaptiveNormalizer
 
 
@@ -440,7 +440,10 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, retu
                 dicom_tags = dicom_tags_dict()
                 write_dicom_series(mask, os.path.join(output_folder, case_name), tags=dicom_tags)
             else:
-                sitk.WriteImage(mask, os.path.join(output_folder, case_name, seg_name), True)
+                if case_name.endswith('.PNG'):
+                    write_picture(mask, os.path.join(output_folder, case_name))
+                else:
+                    sitk.WriteImage(mask, os.path.join(output_folder, case_name, seg_name), True)
 
         # save original image
         if save_image:
