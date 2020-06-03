@@ -10,6 +10,7 @@ import torch
 import numpy as np
 from easydict import EasyDict as edict
 
+from segmentation2d.dataset.dataset import read_image_list
 from segmentation2d.utils.dicom_helper import read_dicom_series, write_dicom_series, dicom_tags_dict
 from segmentation2d.utils.file_io import load_config, readlines
 from segmentation2d.utils.model_io import get_checkpoint_folder
@@ -351,6 +352,8 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, retu
     if os.path.isfile(input_path):
         if input_path.endswith('.txt'):
             file_name_list, file_path_list = read_test_txt(input_path)
+        elif input_path.endswith('.csv'):
+            file_name_list, file_path_list, _ = read_image_list(input_path, 'test')
         else:
             if input_path.endswith('.mhd') or input_path.endswith('.mha') or input_path.endswith('.nii.gz') or \
                     input_path.endswith('.nii') or input_path.endswith('.hdr') or input_path.endswith('.image3d'):
