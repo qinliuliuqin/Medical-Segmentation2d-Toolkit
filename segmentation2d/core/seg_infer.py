@@ -4,6 +4,7 @@ import glob
 import importlib
 import torch.nn as nn
 import os
+import shutil
 import SimpleITK as sitk
 import time
 import torch
@@ -441,6 +442,7 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, retu
                 write_dicom_series(mask, os.path.join(output_folder, case_name), tags=dicom_tags)
             else:
                 if case_name.endswith('.PNG'):
+                    shutil.rmtree(os.path.join(output_folder, case_name))
                     write_picture(mask, os.path.join(output_folder, case_name))
                 else:
                     sitk.WriteImage(mask, os.path.join(output_folder, case_name, seg_name), True)
