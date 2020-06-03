@@ -59,7 +59,7 @@ def set_image_frame(image, frame):
     image.SetDirection(direction)
 
 
-def read_picture(picture_path, out_image_type):
+def read_picture(picture_path, out_image_type=np.float32):
     """
     Convert picture to SimpleITK type
     """
