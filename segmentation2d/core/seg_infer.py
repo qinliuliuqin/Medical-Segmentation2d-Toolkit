@@ -198,7 +198,7 @@ def segmentation_voi(model, iso_image, start_voxel, end_voxel, use_gpu):
     """
     assert isinstance(iso_image, sitk.Image)
 
-    roi_image = iso_image[start_voxel[0]:end_voxel[0], start_voxel[1]:end_voxel[1], start_voxel[2]:end_voxel[2]]
+    roi_image = iso_image[start_voxel[0]:end_voxel[0], start_voxel[1]:end_voxel[1]]
 
     if model['crop_normalizers'] is not None:
         roi_image = model.crop_normalizers[0](roi_image)
