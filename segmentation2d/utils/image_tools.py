@@ -372,10 +372,10 @@ def resample_spacing(image, resampled_spacing, max_stride, interp_method, dim=2)
     in_spacing = image.GetSpacing()
     in_size = image.GetSize()
     in_origin = [float(image.GetOrigin()[idx]) for idx in range(dim)]
-    in_direction = [float(image.GetDirection()[idx]) for idx in range(dim * 3)]
+    in_direction = [float(image.GetDirection()[idx]) for idx in range(dim * dim)]
 
-    out_spacing = [float(resampled_spacing[idx]) for idx in range(3)]
-    out_size = [int(in_size[idx] * in_spacing[idx] / out_spacing[idx] + 0.5) for idx in range(3)]
+    out_spacing = [float(resampled_spacing[idx]) for idx in range(dim)]
+    out_size = [int(in_size[idx] * in_spacing[idx] / out_spacing[idx] + 0.5) for idx in range(dim)]
     for idx in range(dim):
         if out_size[idx] % max_stride:
             out_size[idx] = max_stride * (out_size[idx] // max_stride + 1)
