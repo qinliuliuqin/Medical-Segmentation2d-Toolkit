@@ -17,8 +17,6 @@ from segmentation2d.utils.image_tools import save_intermediate_results, convert_
 from segmentation2d.utils.model_io import load_checkpoint, save_checkpoint
 from segmentation2d.utils.metrics import cal_dsc
 
-# debug
-import SimpleITK as sitk
 
 def train_one_epoch(model, optimizer, data_loader, loss_func, num_gpus, epoch, logger, writer, print_freq,
                     save_inputs, save_folder):
