@@ -164,7 +164,7 @@ def train(train_config_file):
     writer = SummaryWriter(os.path.join(model_folder, 'tensorboard'))
 
     # loop over epochs
-    for epoch_idx in range(train_cfg.train.save_epochs):
+    for epoch_idx in range(train_cfg.train.epochs):
 
         train_one_epoch(net, opt, train_data_loader, loss_func, train_cfg.general.num_gpus, epoch_idx+last_save_epoch,
             logger, writer, train_cfg.train.print_freq, train_cfg.debug.save_inputs, train_cfg.general.save_dir)
