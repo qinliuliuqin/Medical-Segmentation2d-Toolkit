@@ -187,6 +187,8 @@ class SegmentationDataset(Dataset):
         elif self.mode == 'val':
             for idx in range(len(images)):
                 images[idx] = resample_spacing(images[idx], self.spacing, 16, self.interpolation)
+                images[idx] = self.crop_normalizers[idx](images[idx])
+
             seg = resample_spacing(seg, self.spacing, 16, 'NN')
 
         else:
