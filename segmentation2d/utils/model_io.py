@@ -41,14 +41,14 @@ def load_checkpoint(epoch_idx, net, opt, save_dir):
     chk_file = os.path.join(save_dir, 'checkpoints', 'chk_{}'.format(epoch_idx), 'params.pth')
     assert os.path.isfile(chk_file), 'checkpoint file not found: {}'.format(chk_file)
 
-    state = torch.load(chk_file)
+    state = torch.load(chk_file, map_location=torch.device('cpu'))
     net.load_state_dict(state['state_dict'])
 
     # load optimizer state
     opt_file = os.path.join(save_dir, 'checkpoints', 'chk_{}'.format(epoch_idx), 'optimizer.pth')
     assert os.path.isfile(opt_file), 'optimizer file not found: {}'.format(chk_file)
 
-    opt_state = torch.load(opt_file)
+    opt_state = torch.load(opt_file, map_location=torch.device('cpu'))
     opt.load_state_dict(opt_state)
 
     return state['epoch'], state['batch']
