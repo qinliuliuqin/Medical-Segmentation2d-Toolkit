@@ -12,8 +12,11 @@ cfg = __C
 
 __C.general = {}
 
-# image-segmentation pair list
-__C.general.imseg_list = '/shenlab/lab_stor6/projects/PIC_TNSCUI2020/datasets/train.csv'
+# image-segmentation pair list for training
+__C.general.train_im_list = '/shenlab/lab_stor6/projects/PIC_TNSCUI2020/datasets/train.csv'
+
+# image-segmentation pair list for validation
+__C.general.val_im_list = '/shenlab/lab_stor6/projects/PIC_TNSCUI2020/datasets/test.csv'
 
 # the output of training models and logs
 __C.general.save_dir = '/shenlab/lab_stor6/qinliu/PIC_TNSCUI2020/models/model_0601_2020'
