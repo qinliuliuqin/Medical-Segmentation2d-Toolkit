@@ -164,6 +164,7 @@ def train(train_config_file):
     writer = SummaryWriter(os.path.join(model_folder, 'tensorboard'))
 
     # loop over epochs
+    max_avg_dice = 0
     for epoch_idx in range(train_cfg.train.epochs):
 
         train_one_epoch(net, opt, train_data_loader, loss_func, train_cfg.general.num_gpus, epoch_idx+last_save_epoch,
@@ -172,7 +173,8 @@ def train(train_config_file):
         if epoch_idx % train_cfg.train.save_epochs:
             # test on validation dataset
             net.eval()
-            max_avg_dice, dice_res = 0, []
+
+            dice_res = []
             for batch_idx, (crop, mask, _, _) in enumerate(val_data_loader):
                 if train_cfg.general.num_gpus > 0:
                     crop = crop.cuda()
