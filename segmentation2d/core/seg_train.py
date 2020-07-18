@@ -55,7 +55,7 @@ def train(train_config_file):
     # dataset
     dataset = SegmentationDataset(
                 'train',
-                imlist_file=train_cfg.general.imseg_list,
+                imlist_file=train_cfg.general.train_im_list,
                 labels=train_cfg.dataset.labels,
                 spacing=train_cfg.dataset.spacing,
                 crop_size=train_cfg.dataset.crop_size,
