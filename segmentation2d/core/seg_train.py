@@ -22,10 +22,6 @@ def train_one_epoch(model, optimizer, data_loader, loss_func, num_gpus, epoch, l
                     save_inputs, save_folder):
     """ Train one epoch
     """
-    if num_gpus > 0:
-        model = nn.parallel.DataParallel(model, device_ids=list(range(num_gpus)))
-        model = model.cuda()
-
     model.train()
 
     avg_loss = 0
@@ -139,6 +135,10 @@ def train(train_config_file):
     net = net_module.SegmentationNet(train_dataset.num_modality(), train_cfg.dataset.num_classes)
     max_stride = net.max_stride()
     net_module.parameters_kaiming_init(net)
+
+    if train_cfg.general.num_gpus > 0:
+        net = nn.parallel.DataParallel(net, device_ids=list(range(train_cfg.general.num_gpus)))
+        net = net.cuda()
 
     assert np.all(np.array(train_cfg.dataset.crop_size) % max_stride == 0), 'crop size not divisible by max stride'
 
