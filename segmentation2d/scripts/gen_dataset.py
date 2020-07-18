@@ -1,6 +1,10 @@
+import numpy as np
 import os
 import pandas as pd
 import random
+import SimpleITK as sitk
+
+from segmentation2d.utils.image_tools import read_picture
 
 
 def split_dataset(image_list, image_folder, mask_folder, output_folder):
@@ -45,6 +49,29 @@ def split_dataset(image_list, image_folder, mask_folder, output_folder):
     df.to_csv(csv_file_path, index=False)
 
 
+def dataset_statistics(image_list, image_folder, mask_folder):
+    """
+    Generate dataset
+    """
+    for name in image_list:
+        print(name)
+        image_path = os.path.join(image_folder, name)
+        if image_path.endswith('PNG'):
+            image = read_picture(image_path, np.float32)
+        else:
+            image = sitk.ReadImage(image_path, sitk.sitkFloat32)
+
+        mask_path = os.path.join(mask_folder, name)
+        if mask_path.endswith('PNG'):
+            mask = read_picture(mask_path, np.float32)
+        else:
+            mask = sitk.ReadImage(mask_path, sitk.sitkFloat32)
+
+        image_npy = sitk.GetArrayFromImage(image)
+        mask_npy = sitk.GetArrayFromImage(mask)
+        print(image_npy.shape, mask_npy.shape)
+
+
 def get_image_list(image_folder):
     """
     Get image list from the image folder
@@ -62,8 +89,11 @@ def get_image_list(image_folder):
 if __name__ == '__main__':
 
     image_list = get_image_list('/mnt/projects/PIC_TNSCUI2020/TNSCUI2020_train/image')
-    split_dataset(image_list,
-                  '/shenlab/lab_stor6/projects/PIC_TNSCUI2020/TNSCUI2020_train/image',
-                  '/shenlab/lab_stor6/projects/PIC_TNSCUI2020/TNSCUI2020_train/mask',
-                  '/mnt/projects/PIC_TNSCUI2020/TNSCUI2020_train')
+    # split_dataset(image_list,
+    #               '/shenlab/lab_stor6/projects/PIC_TNSCUI2020/TNSCUI2020_train/image',
+    #               '/shenlab/lab_stor6/projects/PIC_TNSCUI2020/TNSCUI2020_train/mask',
+    #               '/mnt/projects/PIC_TNSCUI2020/TNSCUI2020_train')
 
+    dataset_statistics(image_list,
+                  '/mnt/projects/PIC_TNSCUI2020/TNSCUI2020_train/image',
+                  '/mnt/projects/PIC_TNSCUI2020/TNSCUI2020_train/mask')
