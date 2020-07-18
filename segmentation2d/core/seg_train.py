@@ -10,12 +10,62 @@ from torch.utils.data import DataLoader
 from tensorboardX import SummaryWriter
 
 from segmentation2d.dataset.dataset import SegmentationDataset
-from segmentation2d.dataset.sampler import EpochConcateSampler
 from segmentation2d.loss.focal_loss import FocalLoss
 from segmentation2d.loss.multi_dice_loss import MultiDiceLoss
 from segmentation2d.utils.file_io import load_config, setup_logger
-from segmentation2d.utils.image_tools import save_intermediate_results
+from segmentation2d.utils.image_tools import save_intermediate_results, convert_tensor_to_image
 from segmentation2d.utils.model_io import load_checkpoint, save_checkpoint
+from segmentation2d.utils.metrics import cal_dsc
+
+# debug
+import SimpleITK as sitk
+
+def train_one_epoch(model, optimizer, data_loader, loss_func, num_gpus, epoch, logger, writer, print_freq,
+                    save_inputs, save_folder):
+    """ Train one epoch
+    """
+    if num_gpus > 0:
+        model = nn.parallel.DataParallel(model, device_ids=list(range(num_gpus)))
+        model = model.cuda()
+
+    model.train()
+
+    avg_loss = 0
+    for batch_idx, (crops, masks, frames, filenames) in enumerate(data_loader):
+        begin_t = time.time()
+
+        if num_gpus > 0:
+            crops, masks = crops.cuda(), masks.cuda()
+
+        # clear previous gradients
+        optimizer.zero_grad()
+
+        # network forward and backward
+        outputs = model(crops)
+        train_loss = loss_func(outputs, masks)
+        train_loss.backward()
+
+        avg_loss += train_loss.item()
+
+        # update weights
+        optimizer.step()
+
+        # save training crops for visualization
+        if save_inputs:
+            batch_size = crops.size(0)
+            save_intermediate_results(list(range(batch_size)), crops, masks, outputs, frames, filenames,
+                                      os.path.join(save_folder, 'batch_{}'.format(batch_idx)))
+
+        batch_duration = time.time() - begin_t
+
+        # print training loss per batch
+        msg = 'epoch: {}, batch: {}, train_loss: {:.4f}, time: {:.4f} s/vol'
+        msg = msg.format(epoch, batch_idx, train_loss.item(), batch_duration)
+
+        if batch_idx % print_freq:
+            logger.info(msg)
+
+    writer.add_scalar('Train/Loss', avg_loss / len(data_loader), epoch)
 
 
 def train(train_config_file):
@@ -52,8 +102,8 @@ def train(train_config_file):
     if train_cfg.general.num_gpus > 0:
         torch.cuda.manual_seed(train_cfg.general.seed)
 
-    # dataset
-    dataset = SegmentationDataset(
+    # training dataset
+    train_dataset = SegmentationDataset(
                 'train',
                 imlist_file=train_cfg.general.train_im_list,
                 labels=train_cfg.dataset.labels,
@@ -65,17 +115,28 @@ def train(train_config_file):
                 interpolation=train_cfg.dataset.interpolation,
                 crop_normalizers=train_cfg.dataset.crop_normalizers)
 
-    sampler = EpochConcateSampler(dataset, train_cfg.train.epochs)
-    data_loader = DataLoader(dataset, sampler=sampler, batch_size=train_cfg.train.batchsize,
-                             num_workers=train_cfg.train.num_threads, pin_memory=True)
+    train_data_loader = DataLoader(train_dataset, batch_size=train_cfg.train.batchsize,
+                                   num_workers=train_cfg.train.num_threads, pin_memory=True, shuffle=True)
+
+    # validation dataset
+    val_dataset = SegmentationDataset(
+                'val',
+                imlist_file=train_cfg.general.val_im_list,
+                labels=train_cfg.dataset.labels,
+                spacing=train_cfg.dataset.spacing,
+                crop_size=train_cfg.dataset.crop_size,
+                sampling_method=train_cfg.dataset.sampling_method,
+                random_translation=train_cfg.dataset.random_translation,
+                random_scale=train_cfg.dataset.random_scale,
+                interpolation=train_cfg.dataset.interpolation,
+                crop_normalizers=train_cfg.dataset.crop_normalizers)
+
+    val_data_loader = DataLoader(val_dataset, batch_size=1, num_workers=1, shuffle=False)
 
     net_module = importlib.import_module('segmentation2d.network.' + train_cfg.net.name)
-    net = net_module.SegmentationNet(dataset.num_modality(), train_cfg.dataset.num_classes)
+    net = net_module.SegmentationNet(train_dataset.num_modality(), train_cfg.dataset.num_classes)
     max_stride = net.max_stride()
     net_module.parameters_kaiming_init(net)
-    if train_cfg.general.num_gpus > 0:
-        net = nn.parallel.DataParallel(net, device_ids=list(range(train_cfg.general.num_gpus)))
-        net = net.cuda()
 
     assert np.all(np.array(train_cfg.dataset.crop_size) % max_stride == 0), 'crop size not divisible by max stride'
 
@@ -89,9 +150,9 @@ def train(train_config_file):
         last_save_epoch, batch_start = 0, 0
 
     if train_cfg.loss.name == 'Focal':
-        # reuse focal loss if exists
-        loss_func = FocalLoss(class_num=train_cfg.dataset.num_classes, alpha=train_cfg.loss.obj_weight, gamma=train_cfg.loss.focal_gamma,
-                              use_gpu=train_cfg.general.num_gpus > 0)
+        loss_func = FocalLoss(class_num=train_cfg.dataset.num_classes, alpha=train_cfg.loss.obj_weight,
+                              gamma=train_cfg.loss.focal_gamma, use_gpu=train_cfg.general.num_gpus > 0)
+
     elif train_cfg.loss.name == 'Dice':
         loss_func = MultiDiceLoss(weights=train_cfg.loss.obj_weight, num_class=train_cfg.dataset.num_classes,
                                   use_gpu=train_cfg.general.num_gpus > 0)
@@ -100,51 +161,40 @@ def train(train_config_file):
 
     writer = SummaryWriter(os.path.join(model_folder, 'tensorboard'))
 
-    batch_idx = batch_start
-    data_iter = iter(data_loader)
+    # loop over epochs
+    for epoch_idx in range(train_cfg.train.save_epochs):
 
-    # loop over batches
-    for i in range(len(data_loader)):
-        begin_t = time.time()
+        train_one_epoch(net, opt, train_data_loader, loss_func, train_cfg.general.num_gpus, epoch_idx+last_save_epoch,
+            logger, writer, train_cfg.train.print_freq, train_cfg.debug.save_inputs, train_cfg.general.save_dir)
 
-        crops, masks, frames, filenames = data_iter.next()
+        if epoch_idx % train_cfg.train.save_epochs:
+            # test on validation dataset
+            net.eval()
+            max_avg_dice, dice_res = 0, []
+            for batch_idx, (crop, mask, _, _) in enumerate(val_data_loader):
+                if train_cfg.general.num_gpus > 0:
+                    crop = crop.cuda()
 
-        if train_cfg.general.num_gpus > 0:
-            crops, masks = crops.cuda(), masks.cuda()
+                probs = net(crop)
+                pred_mask = probs.squeeze(0)
+                _, pred_mask = pred_mask.max(0)
 
-        # clear previous gradients
-        opt.zero_grad()
+                mask = mask.squeeze()
+                if train_cfg.general.num_gpus > 0:
+                    mask = mask.cpu()
 
-        # network forward and backward
-        outputs = net(crops)
-        train_loss = loss_func(outputs, masks)
-        train_loss.backward()
+                mask = convert_tensor_to_image(mask, dtype=np.int32)
+                pred_mask = convert_tensor_to_image(pred_mask, dtype=np.int32)
 
-        # update weights
-        opt.step()
+                # compute dice
+                dice, _ = cal_dsc(mask, pred_mask, 1, 10)
+                dice_res.append(dice)
 
-        # save training crops for visualization
-        if train_cfg.debug.save_inputs:
-            batch_size = crops.size(0)
-            save_intermediate_results(list(range(batch_size)), crops, masks, outputs, frames, filenames,
-                                      os.path.join(model_folder, 'batch_{}'.format(i)))
+            if np.mean(dice_res) > max_avg_dice:
+                # save model
+                save_checkpoint(net, opt, epoch_idx + last_save_epoch, 0, train_cfg, max_stride, train_dataset.num_modality())
 
-        epoch_idx = batch_idx * train_cfg.train.batchsize // len(dataset)
-        batch_idx += 1
-        batch_duration = time.time() - begin_t
-        sample_duration = batch_duration * 1.0 / train_cfg.train.batchsize
-
-        # print training loss per batch
-        msg = 'epoch: {}, batch: {}, train_loss: {:.4f}, time: {:.4f} s/vol'
-        msg = msg.format(epoch_idx, batch_idx, train_loss.item(), sample_duration)
-        logger.info(msg)
-
-        # save checkpoint
-        if epoch_idx != 0 and (epoch_idx % train_cfg.train.save_epochs == 0):
-            if last_save_epoch != epoch_idx:
-                save_checkpoint(net, opt, epoch_idx, batch_idx, train_cfg, max_stride, dataset.num_modality())
-                last_save_epoch = epoch_idx
-
-        writer.add_scalar('Train/Loss', train_loss.item(), batch_idx)
+                max_avg_dice = np.mean(dice_res)
+                logger.info('Best epoch: {}, mean dice: {}'.format(epoch_idx + last_save_epoch, max_avg_dice))
 
     writer.close()

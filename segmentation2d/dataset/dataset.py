@@ -4,7 +4,7 @@ import SimpleITK as sitk
 from torch.utils.data import Dataset
 
 from segmentation2d.utils.image_tools import select_random_voxels_in_multi_class_mask, crop_image, \
-    convert_image_to_tensor, get_image_frame, read_picture
+    convert_image_to_tensor, get_image_frame, read_picture, resample_spacing
 
 
 def read_image_list(image_list_file, mode):
@@ -16,7 +16,7 @@ def read_image_list(image_list_file, mode):
   image_path_list = images_df['image_path'].tolist()
   mask_path_list = None
 
-  if mode == 'train':
+  if mode == 'train' or 'val':
     mask_path_list = images_df['mask_path'].tolist()
 
   return image_name_list, image_path_list, mask_path_list
@@ -40,6 +40,8 @@ class SegmentationDataset(Dataset):
             self.im_name_list, self.im_path_list, self.seg_list = read_image_list(imlist_file, mode)
         else:
             raise ValueError('imseg_list must be a csv file')
+
+        self.mode = mode
 
         self.labels = labels
 
@@ -139,47 +141,57 @@ class SegmentationDataset(Dataset):
         reordered_seg.CopyInformation(seg)
         seg = reordered_seg
 
-        # sampling a crop center
-        if self.sampling_method == 'CENTER':
-            center = self.center_sample(seg)
+        if self.mode == 'train':
+            # sampling a crop center
+            if self.sampling_method == 'CENTER':
+                center = self.center_sample(seg)
 
-        elif self.sampling_method == 'GLOBAL':
-            center = self.global_sample(seg)
-
-        elif self.sampling_method == 'MASK':
-            centers = select_random_voxels_in_multi_class_mask(seg, 1, np.random.randint(1, self.num_classes))
-            if len(centers) > 0:
-                center = seg.TransformIndexToPhysicalPoint([int(centers[0][idx]) for idx in range(2)])
-            else:  # if no segmentation
+            elif self.sampling_method == 'GLOBAL':
                 center = self.global_sample(seg)
 
-        elif self.sampling_method == 'HYBRID':
-            if index % 2:
-                center = self.global_sample(seg)
-            else:
+            elif self.sampling_method == 'MASK':
                 centers = select_random_voxels_in_multi_class_mask(seg, 1, np.random.randint(1, self.num_classes))
                 if len(centers) > 0:
                     center = seg.TransformIndexToPhysicalPoint([int(centers[0][idx]) for idx in range(2)])
                 else:  # if no segmentation
                     center = self.global_sample(seg)
 
+            elif self.sampling_method == 'HYBRID':
+                if index % 2:
+                    center = self.global_sample(seg)
+                else:
+                    centers = select_random_voxels_in_multi_class_mask(seg, 1, np.random.randint(1, self.num_classes))
+                    if len(centers) > 0:
+                        center = seg.TransformIndexToPhysicalPoint([int(centers[0][idx]) for idx in range(2)])
+                    else:  # if no segmentation
+                        center = self.global_sample(seg)
+
+            else:
+                raise ValueError('Only CENTER, GLOBAL, MASK and HYBRID are supported as sampling methods')
+
+            # random translation
+            center += np.random.uniform(-self.random_translation, self.random_translation, size=[2])
+
+            # random resampling
+            crop_spacing = self.spacing * np.random.uniform(self.random_scale[0], self.random_scale[1])
+
+            # sample a crop from image and normalize it
+            for idx in range(len(images)):
+                images[idx] = crop_image(images[idx], center, self.crop_size, crop_spacing, self.interpolation, 2)
+
+                if self.crop_normalizers[idx] is not None:
+                    images[idx] = self.crop_normalizers[idx](images[idx])
+
+            seg = crop_image(seg, center, self.crop_size, crop_spacing, 'NN', 2)
+
+        elif self.mode == 'val':
+            for idx in range(len(images)):
+                images[idx] = resample_spacing(images[idx], self.spacing, 16, self.interpolation)
+            seg = resample_spacing(seg, self.spacing, 16, 'NN')
+
         else:
-            raise ValueError('Only CENTER, GLOBAL, MASK and HYBRID are supported as sampling methods')
+            raise ValueError('Unsupported mode type.')
 
-        # random translation
-        center += np.random.uniform(-self.random_translation, self.random_translation, size=[2])
-
-        # random resampling
-        crop_spacing = self.spacing * np.random.uniform(self.random_scale[0], self.random_scale[1])
-
-        # sample a crop from image and normalize it
-        for idx in range(len(images)):
-            images[idx] = crop_image(images[idx], center, self.crop_size, crop_spacing, self.interpolation, 2)
-
-            if self.crop_normalizers[idx] is not None:
-                images[idx] = self.crop_normalizers[idx](images[idx])
-
-        seg = crop_image(seg, center, self.crop_size, crop_spacing, 'NN', 2)
 
         # image frame
         frame = get_image_frame(seg)
