@@ -14,12 +14,15 @@ __C.general = {}
 
 # image-segmentation pair list for training
 __C.general.train_im_list = '/shenlab/lab_stor6/projects/PIC_TNSCUI2020/datasets/train.csv'
+# __C.general.train_im_list = '/mnt/projects/PIC_TNSCUI2020/datasets/train_debug.csv'
 
 # image-segmentation pair list for validation
 __C.general.val_im_list = '/shenlab/lab_stor6/projects/PIC_TNSCUI2020/datasets/test.csv'
+# __C.general.val_im_list = '/mnt/projects/PIC_TNSCUI2020/datasets/test_debug.csv'
 
 # the output of training models and logs
-__C.general.save_dir = '/shenlab/lab_stor6/qinliu/PIC_TNSCUI2020/models/model_0601_2020'
+__C.general.save_dir = '/shenlab/lab_stor6/qinliu/PIC_TNSCUI2020/models/model_0718_2020'
+# __C.general.save_dir = '/mnt/projects/PIC_TNSCUI2020/models/model_0717_2020'
 
 # the model scale
 __C.general.model_scale = 'coarse'
@@ -58,10 +61,16 @@ __C.dataset.crop_size = [256, 256]
 # 2) MASK: sampling crops randomly within segmentation mask
 # 3) HYBRID: Sampling crops randomly with both GLOBAL and MASK methods
 # 4) CENTER: sampling crops in the image center
-__C.dataset.sampling_method = 'HYBRID'
+__C.dataset.sampling_method = 'GLOBAL'
 
 # translation augmentation (unit: mm)
 __C.dataset.random_translation = [5, 5]
+
+# vertical flip
+__C.dataset.random_vertical_flip = True
+
+# horizontal flip
+__C.dataset.random_horizontal_flip = True
 
 # spacing scale augmentation, spacing scale will be randomly selected from [min, max]
 # during training, the image spacing will be spacing * scale
@@ -116,10 +125,10 @@ __C.train = {}
 __C.train.epochs = 1001
 
 # the number of samples in a batch
-__C.train.batchsize = 6
+__C.train.batchsize = 1
 
 # the number of threads for IO
-__C.train.num_threads = 6
+__C.train.num_threads = 1
 
 # the learning rate
 __C.train.lr = 1e-4
@@ -130,6 +139,7 @@ __C.train.betas = (0.9, 0.999)
 # the number of batches to save model
 __C.train.save_epochs = 100
 
+__C.train.print_freq = 20
 
 ###################################
 # debug parameters

@@ -26,7 +26,8 @@ class SegmentationDataset(Dataset):
     """ training data set for volumetric segmentation """
 
     def __init__(self, mode, imlist_file, labels, spacing, crop_size, sampling_method,
-                 random_translation, random_scale, interpolation, crop_normalizers):
+                 random_translation, random_scale, random_vert_flip, random_hori_flip,
+                 interpolation, crop_normalizers):
         """ constructor
         :param imlist_file: image-segmentation list file
         :param spacing: the resolution, e.g., [1, 1, 1]
@@ -62,6 +63,10 @@ class SegmentationDataset(Dataset):
 
         self.random_scale = np.array(random_scale, dtype=np.double)
         assert self.random_scale.size == 2, 'Only 2-element of random scale is supported'
+
+        self.random_vert_flip = random_vert_flip
+
+        self.random_hori_flip = random_hori_flip
 
         self.interpolation = interpolation
         assert self.interpolation in ('LINEAR', 'NN'), 'interpolation must either be a LINEAR or NN'
@@ -172,7 +177,7 @@ class SegmentationDataset(Dataset):
             # random translation
             center += np.random.uniform(-self.random_translation, self.random_translation, size=[2])
 
-            # random resampling
+            # random rescale
             crop_spacing = self.spacing * np.random.uniform(self.random_scale[0], self.random_scale[1])
 
             # sample a crop from image and normalize it
@@ -183,6 +188,22 @@ class SegmentationDataset(Dataset):
                     images[idx] = self.crop_normalizers[idx](images[idx])
 
             seg = crop_image(seg, center, self.crop_size, crop_spacing, 'NN', 2)
+
+            # random horizontal flip
+            if self.random_hori_flip:
+                do_flip = np.random.random() > 0.5
+                seg = sitk.Flip(seg, [do_flip, False], True)
+
+                for idx in range(len(images)):
+                    images[idx] = sitk.Flip(images[idx], [do_flip, False], True)
+
+            # random vertical flip
+            if self.random_vert_flip:
+                do_flip = np.random.random() > 0.5
+                seg = sitk.Flip(seg, [False, do_flip], True)
+
+                for idx in range(len(images)):
+                    images[idx] = sitk.Flip(images[idx], [False, do_flip], True)
 
         elif self.mode == 'val':
             for idx in range(len(images)):

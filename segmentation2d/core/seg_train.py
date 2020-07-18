@@ -110,6 +110,8 @@ def train(train_config_file):
                 sampling_method=train_cfg.dataset.sampling_method,
                 random_translation=train_cfg.dataset.random_translation,
                 random_scale=train_cfg.dataset.random_scale,
+                random_hori_flip=train_cfg.dataset.random_horizontal_flip,
+                random_vert_flip=train_cfg.dataset.random_vertical_flip,
                 interpolation=train_cfg.dataset.interpolation,
                 crop_normalizers=train_cfg.dataset.crop_normalizers)
 
@@ -126,6 +128,8 @@ def train(train_config_file):
                 sampling_method=train_cfg.dataset.sampling_method,
                 random_translation=train_cfg.dataset.random_translation,
                 random_scale=train_cfg.dataset.random_scale,
+                random_hori_flip=False,
+                random_vert_flip=False,
                 interpolation=train_cfg.dataset.interpolation,
                 crop_normalizers=train_cfg.dataset.crop_normalizers)
 
